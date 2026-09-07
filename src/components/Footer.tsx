@@ -15,7 +15,7 @@ export const Footer: React.FC = () => {
         <nav className="flex items-center gap-6">
           <a 
             className="font-label-sm text-label-sm text-muted-lavender hover:text-off-white transition-colors hover:underline" 
-            href="https://github.com" 
+            href="https://github.com/kumarswamynaidu09/Cnidaria" 
             target="_blank" 
             rel="noreferrer"
           >
