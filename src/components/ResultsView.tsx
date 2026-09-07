@@ -282,16 +282,63 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             <div className="flex gap-2">
               <button
                 onClick={() => setShowEmptyDemo(true)}
-                className="flex-1 text-[9px] font-mono py-1 rounded bg-deep-violet hover:bg-coral/10 text-muted-lavender border border-outline-variant/10"
+                className="flex-1 text-[9px] font-mono py-1 rounded bg-deep-violet hover:bg-coral/10 text-muted-lavender border border-outline-variant/10 cursor-pointer"
               >
                 Sim Empty State
               </button>
               <button
                 onClick={() => setShowErrorDemo(true)}
-                className="flex-1 text-[9px] font-mono py-1 rounded bg-deep-violet hover:bg-coral/10 text-muted-lavender border border-outline-variant/10"
+                className="flex-1 text-[9px] font-mono py-1 rounded bg-deep-violet hover:bg-coral/10 text-muted-lavender border border-outline-variant/10 cursor-pointer"
               >
                 Sim Error State
               </button>
+            </div>
+          </div>
+
+          {/* AI-Powered Image Overview Section */}
+          <div className="bg-midnight-indigo rounded-3xl p-5 border border-coral/15 shadow-[0_0_20px_rgba(0,0,0,0.15)] space-y-4 select-none animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px] text-coral">psychology</span>
+                <span className="font-sans text-xs font-bold text-off-white uppercase tracking-wider">
+                  Overview
+                </span>
+              </div>
+              <span className="font-mono text-[9px] text-coral bg-deep-violet px-2 py-0.5 rounded border border-coral/15">
+                AI Vision Analysis
+              </span>
+            </div>
+
+            <div className="space-y-3 font-sans text-xs">
+              <div>
+                <span className="text-[10px] text-muted-lavender/70 font-semibold uppercase tracking-wider block mb-0.5">
+                  Subject Attribution
+                </span>
+                <p className="text-off-white font-bold text-xs">
+                  {results[0]?.title ? results[0].title.split(":")[0] || "Detected Subject Portrait" : "Detected Subject Portrait"}
+                </p>
+              </div>
+
+              <div>
+                <span className="text-[10px] text-muted-lavender/70 font-semibold uppercase tracking-wider block mb-0.5">
+                  Visual Features Overview
+                </span>
+                <p className="text-muted-lavender text-[11px] leading-relaxed bg-deep-midnight/50 p-2.5 rounded-xl border border-white/5">
+                  High-definition facial features extracted via 512-dimensional ArcFace neural embeddings. Features frontal geometry, facial landmarks, and uncompressed SHA-256 content fingerprinting.
+                </p>
+              </div>
+
+              <div className="pt-1">
+                <span className="text-[10px] text-muted-lavender/70 font-semibold uppercase tracking-wider block mb-1">
+                  Key Index Tags
+                </span>
+                <div className="flex flex-wrap gap-1.5 font-mono text-[9px]">
+                  <span className="px-2 py-0.5 rounded-md bg-deep-violet text-coral border border-coral/15">#InsightFace</span>
+                  <span className="px-2 py-0.5 rounded-md bg-deep-violet text-coral border border-coral/15">#ArcFace512d</span>
+                  <span className="px-2 py-0.5 rounded-md bg-deep-violet text-coral border border-coral/15">#SHA256</span>
+                  <span className="px-2 py-0.5 rounded-md bg-deep-violet text-coral border border-coral/15">#EVM-Attested</span>
+                </div>
+              </div>
             </div>
           </div>
 
