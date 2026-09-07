@@ -9,7 +9,7 @@ export type PipelineState =
   | "search_complete"
   | "results"
   | "result_selected"
-  | "result_detail"
+  | "match_detail"
   | "verifying"
   | "verified"
   | "error";
@@ -42,6 +42,10 @@ export interface SearchResult {
   description?: string;
   url: string;
   similarity: number; // 0.0 to 1.0 (e.g., 0.924)
+  similarityScore?: number; // 0 to 100 or 0 to 1 (e.g. 92.4 or 0.924)
+  image?: string;
+  sourceType?: string;
+  caption?: string;
   date?: string;
   type?: "news" | "social" | "academic" | "other";
   sha256: string;

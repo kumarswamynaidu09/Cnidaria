@@ -34,6 +34,17 @@ export const usePipeline = () => {
       clearAllTimers();
     };
   }, [clearAllTimers]);
+
+  // Automatically transition result_selected state to match_detail smoothly
+  useEffect(() => {
+    if (state === "result_selected") {
+      const timer = setTimeout(() => {
+        setState("match_detail");
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [state]);
+
   const [activePreset, setActivePreset] = useState<"Elena" | "Marcus" | "Sofia">("Elena");
   
   // Custom image upload variables
@@ -256,7 +267,7 @@ export const usePipeline = () => {
   const inspectResult = (result: SearchResult) => {
     setSelectedResult(result);
     setState("result_selected");
-    setIsDrawerOpen(true);
+    setIsDrawerOpen(false);
   };
 
   // Perform Blockchain Verification (Section 7, 8, 9 & 14 Timeline)

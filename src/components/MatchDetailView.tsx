@@ -17,20 +17,26 @@ export const MatchDetailView: React.FC<MatchDetailViewProps> = ({
   onVerify,
   isVerifying
 }) => {
-  const [ringOffset, setRingOffset] = useState(165); // Default empty ring offset
+  const [ringOffset, setRingOffset] = useState(163.3); // Default empty ring offset (2 * PI * 26)
+
+  // Parse similarity score from similarityScore or similarity
+  const rawScore = selectedResult?.similarityScore ?? selectedResult?.similarity ?? 0;
+  const scorePct = rawScore <= 1 ? rawScore * 100 : rawScore;
+  const scorePercentage = scorePct.toFixed(1);
 
   useEffect(() => {
     if (selectedResult) {
       // Animate the SVG similarity ring once the component mounts
       const radius = 26;
-      const strokeLength = 2 * Math.PI * radius; // ~163.3
-      const offset = strokeLength - (strokeLength * selectedResult.similarity);
+      const strokeLength = 2 * Math.PI * radius; // ~163.36
+      const pct = scorePct / 100;
+      const offset = strokeLength - (strokeLength * pct);
       const timer = setTimeout(() => {
         setRingOffset(offset);
       }, 150);
       return () => clearTimeout(timer);
     }
-  }, [selectedResult]);
+  }, [selectedResult, scorePct]);
 
   // Clean Error State if no result is selected
   if (!selectedResult) {
@@ -39,18 +45,18 @@ export const MatchDetailView: React.FC<MatchDetailViewProps> = ({
         className="py-16 flex flex-col items-center justify-center text-center animate-fadeIn max-w-md mx-auto select-none"
         id="error-missing-result"
       >
-        <div className="w-16 h-16 rounded-2xl bg-deep-violet border border-coral/15 flex items-center justify-center text-coral mb-4">
+        <div className="w-16 h-16 rounded-2xl bg-[#1c1a45] border border-[#FF3F7F]/15 flex items-center justify-center text-[#FF3F7F] mb-4">
           <span className="material-symbols-outlined text-[36px]">error_outline</span>
         </div>
-        <h3 className="font-display-lg text-2xl font-bold text-off-white mb-2">
+        <h3 className="font-display-lg text-2xl font-bold text-[#F8F5F2] mb-2">
           No result selected
         </h3>
-        <p className="font-body-md text-sm text-muted-lavender leading-relaxed mb-6">
+        <p className="font-body-md text-sm text-[#B8A9E8] leading-relaxed mb-6">
           Please choose a match from the results grid first.
         </p>
         <button
           onClick={onBack}
-          className="px-6 py-2.5 rounded-xl bg-deep-violet hover:bg-coral hover:text-deep-midnight border border-coral/20 text-coral font-sans text-xs font-semibold cursor-pointer transition-transform active:scale-95"
+          className="px-6 py-2.5 rounded-xl bg-[#1c1a45] hover:bg-[#FF3F7F] hover:text-[#0E0E2C] border border-[#FF3F7F]/20 text-[#FF3F7F] font-sans text-xs font-semibold cursor-pointer transition-transform active:scale-95"
         >
           Back to matches
         </button>
@@ -58,11 +64,8 @@ export const MatchDetailView: React.FC<MatchDetailViewProps> = ({
     );
   }
 
-  const scorePercentage = (selectedResult.similarity * 100).toFixed(1);
-
-  // Match Classification calculation (Subtle)
-  const getMatchClassification = (similarity: number) => {
-    const score = similarity * 100;
+  // Match Classification calculation (Subtle & Cautious)
+  const getMatchClassification = (score: number) => {
     if (score >= 90) return "Strong visual match";
     if (score >= 80) return "Likely visual match";
     if (score >= 70) return "Possible visual match";
@@ -71,18 +74,12 @@ export const MatchDetailView: React.FC<MatchDetailViewProps> = ({
 
   // Helper for source type label mapping
   const getReadableType = (res: SearchResult) => {
-    if (res.id === "res-01") return "News article";
-    if (res.id === "res-02") return "Public social post";
-    if (res.id === "res-03") return "Public profile";
-    if (res.id === "res-04") return "Web page";
-    if (res.id === "res-05") return "Image result";
-
-    switch (res.type) {
-      case "social": return "Public social post";
-      case "news": return "News article";
-      case "academic": return "Academic reference";
-      default: return "Web reference";
-    }
+    const typeVal = res.sourceType ?? res.type;
+    if (typeVal === "social") return "Social media";
+    if (typeVal === "news") return "News article";
+    if (typeVal === "academic") return "Academic reference";
+    if (typeVal === "other") return "Web reference";
+    return typeVal || "Web reference";
   };
 
   return (
@@ -103,7 +100,7 @@ export const MatchDetailView: React.FC<MatchDetailViewProps> = ({
       >
         <button
           onClick={onBack}
-          className="group inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-deep-violet/30 hover:bg-deep-violet/75 border border-coral/10 hover:border-coral/25 text-muted-lavender hover:text-off-white text-xs font-semibold transition-all duration-200 cursor-pointer"
+          className="group inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1c1a45]/30 hover:bg-[#1c1a45]/75 border border-[#FF3F7F]/10 hover:border-[#FF3F7F]/25 text-[#B8A9E8] hover:text-[#F8F5F2] text-xs font-semibold transition-all duration-200 cursor-pointer"
         >
           <span className="material-symbols-outlined text-[16px] group-hover:-translate-x-0.5 transition-transform">
             arrow_back
@@ -118,14 +115,14 @@ export const MatchDetailView: React.FC<MatchDetailViewProps> = ({
         {/* ==================== LEFT COLUMN: IMAGE COMPARISON MODULE ==================== */}
         <motion.div
           variants={{ hidden: { opacity: 0, scale: 0.98 }, visible: { opacity: 1, scale: 1 } }}
-          className="lg:col-span-7 bg-midnight-indigo rounded-3xl p-6 border border-coral/10 shadow-[0_0_24px_rgba(0,0,0,0.15)] flex flex-col gap-6"
+          className="lg:col-span-7 bg-[#13113C] rounded-3xl p-6 border border-[#FF3F7F]/10 shadow-[0_0_24px_rgba(0,0,0,0.15)] flex flex-col gap-6"
         >
-          <div className="flex items-center justify-between pb-3 border-b border-outline-variant/10">
-            <h3 className="text-sm font-sans font-bold text-off-white tracking-wide uppercase select-none flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-coral animate-pulse"></span>
-              Visual Comparison Viewport
+          <div className="flex items-center justify-between pb-3 border-b border-white/5">
+            <h3 className="text-xs font-sans font-bold text-[#F8F5F2] tracking-wider uppercase select-none flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#FF3F7F] animate-pulse"></span>
+              Visual Correspondence Frame
             </h3>
-            <span className="font-mono text-[10px] text-muted-lavender/70">Inspect correspondence</span>
+            <span className="font-mono text-[10px] text-[#B8A9E8]/70">Side-by-side verification</span>
           </div>
 
           {/* Large Side-by-Side (Desktop) or Stacked (Mobile) Visual Showcase */}
@@ -133,48 +130,48 @@ export const MatchDetailView: React.FC<MatchDetailViewProps> = ({
             
             {/* Subject Reference Frame (Your Image) */}
             <div className="flex flex-col gap-2 group">
-              <div className="aspect-[4/5] rounded-2xl overflow-hidden bg-deep-midnight border border-coral/15 relative shadow-inner overflow-hidden">
+              <div className="aspect-[4/5] rounded-2xl overflow-hidden bg-[#0E0E2C] border border-[#FF3F7F]/15 relative shadow-inner">
                 <img
                   alt="Original reference query"
                   className="w-full h-full object-cover brightness-95 group-hover:scale-[1.01] transition-transform duration-500"
                   src={referenceUrl}
                   referrerPolicy="no-referrer"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-deep-midnight/50 via-transparent to-transparent opacity-40"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0E0E2C]/50 via-transparent to-transparent opacity-40"></div>
                 
                 {/* Visual Label overlay */}
-                <div className="absolute bottom-3 left-3 bg-deep-midnight/90 text-coral border border-coral/20 px-2.5 py-1 rounded-lg font-code-xs text-[10px] uppercase font-bold tracking-widest select-none">
-                  Your image
+                <div className="absolute bottom-3 left-3 bg-[#0E0E2C]/95 text-[#FF3F7F] border border-[#FF3F7F]/20 px-3 py-1 rounded-lg font-mono text-[10px] uppercase font-bold tracking-widest select-none">
+                  YOUR IMAGE
                 </div>
               </div>
               <div className="text-center sm:text-left">
-                <p className="font-sans text-xs text-muted-lavender font-semibold">Reference Image</p>
-                <span className="font-sans text-[10px] text-muted-lavender/60">Source query signature input</span>
+                <p className="font-sans text-xs text-[#B8A9E8] font-semibold">Reference Image</p>
+                <span className="font-sans text-[10px] text-[#B8A9E8]/60">Source query signature input</span>
               </div>
             </div>
 
             {/* Candidate Web Matched Frame (Matched Image) */}
             <div className="flex flex-col gap-2 group">
-              <div className="aspect-[4/5] rounded-2xl overflow-hidden bg-deep-midnight border border-coral/25 relative shadow-inner overflow-hidden">
+              <div className="aspect-[4/5] rounded-2xl overflow-hidden bg-[#0E0E2C] border border-[#FF3F7F]/25 relative shadow-inner">
                 <motion.img
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ type: "spring", stiffness: 100, damping: 20 }}
                   alt="Matched content reference"
                   className="w-full h-full object-cover brightness-95 group-hover:scale-[1.01] transition-transform duration-500"
-                  src={selectedResult.imageUrl}
+                  src={selectedResult.image || selectedResult.imageUrl}
                   referrerPolicy="no-referrer"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-deep-midnight/50 via-transparent to-transparent opacity-40"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0E0E2C]/50 via-transparent to-transparent opacity-40"></div>
 
                 {/* Visual Label overlay */}
-                <div className="absolute bottom-3 left-3 bg-deep-midnight/90 text-off-white border border-outline-variant/15 px-2.5 py-1 rounded-lg font-code-xs text-[10px] uppercase font-bold tracking-widest select-none">
-                  Matched image
+                <div className="absolute bottom-3 left-3 bg-[#0E0E2C]/95 text-[#F8F5F2] border border-white/10 px-3 py-1 rounded-lg font-mono text-[10px] uppercase font-bold tracking-widest select-none">
+                  MATCHED IMAGE
                 </div>
               </div>
               <div className="text-center sm:text-left">
-                <p className="font-sans text-xs text-coral font-semibold">Matched Reference</p>
-                <span className="font-sans text-[10px] text-muted-lavender/60">Public internet node visual discovery</span>
+                <p className="font-sans text-xs text-[#FF3F7F] font-semibold">Matched Reference</p>
+                <span className="font-sans text-[10px] text-[#B8A9E8]/60">Public internet node visual discovery</span>
               </div>
             </div>
 
@@ -187,15 +184,15 @@ export const MatchDetailView: React.FC<MatchDetailViewProps> = ({
           {/* Similarity & Metrics Ring Card */}
           <motion.div
             variants={{ hidden: { opacity: 0, x: 12 }, visible: { opacity: 1, x: 0 } }}
-            className="bg-midnight-indigo rounded-3xl p-6 border border-coral/10 shadow-[0_0_24px_rgba(0,0,0,0.1)] flex flex-col gap-4"
+            className="bg-[#13113C] rounded-3xl p-6 border border-[#FF3F7F]/10 shadow-[0_0_24px_rgba(0,0,0,0.1)] flex flex-col gap-4"
           >
             <div className="flex items-center gap-5">
               {/* Refined Radial Progress Ring */}
               <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
                 <svg className="w-16 h-16 transform -rotate-90">
-                  <circle className="text-deep-violet" cx="32" cy="32" fill="transparent" r="26" stroke="currentColor" strokeWidth="3.5"></circle>
+                  <circle className="text-[#1c1a45]" cx="32" cy="32" fill="transparent" r="26" stroke="currentColor" strokeWidth="3.5"></circle>
                   <circle 
-                    className="text-coral transition-all duration-1000 ease-out" 
+                    className="text-[#FF3F7F] transition-all duration-1000 ease-out" 
                     cx="32" 
                     cy="32" 
                     fill="transparent" 
@@ -206,21 +203,21 @@ export const MatchDetailView: React.FC<MatchDetailViewProps> = ({
                     strokeWidth="4"
                   ></circle>
                 </svg>
-                <span className="absolute font-sans text-base font-bold text-off-white">
+                <span className="absolute font-sans text-base font-bold text-[#F8F5F2]">
                   {scorePercentage}%
                 </span>
               </div>
 
               <div>
-                <span className="font-sans text-xs text-muted-lavender/80 uppercase font-bold tracking-wider select-none block">
-                  Match Integrity Score
+                <span className="font-sans text-[10px] text-[#B8A9E8]/80 uppercase font-bold tracking-wider select-none block">
+                  Similarity metric
                 </span>
-                <h4 className="font-sans text-xl font-bold text-off-white mt-0.5 leading-none">
+                <h4 className="font-sans text-xl font-bold text-[#F8F5F2] mt-0.5 leading-none">
                   Visual similarity
                 </h4>
-                <p className="text-coral font-sans text-xs font-semibold mt-1 flex items-center gap-1.5 select-none">
-                  <span className="w-1.5 h-1.5 rounded-full bg-coral animate-ping"></span>
-                  {getMatchClassification(selectedResult.similarity)}
+                <p className="text-[#FF3F7F] font-sans text-xs font-semibold mt-1 flex items-center gap-1.5 select-none">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FF3F7F] animate-ping"></span>
+                  {getMatchClassification(scorePct)}
                 </p>
               </div>
             </div>
@@ -229,70 +226,77 @@ export const MatchDetailView: React.FC<MatchDetailViewProps> = ({
           {/* Original Source Information Card */}
           <motion.div
             variants={{ hidden: { opacity: 0, x: 12 }, visible: { opacity: 1, x: 0 } }}
-            className="bg-midnight-indigo rounded-3xl p-6 border border-coral/10 shadow-[0_0_24px_rgba(0,0,0,0.1)] space-y-4"
+            className="bg-[#13113C] rounded-3xl p-6 border border-[#FF3F7F]/10 shadow-[0_0_24px_rgba(0,0,0,0.1)] space-y-4"
           >
-            <div className="border-b border-outline-variant/10 pb-3">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-muted-lavender/70 block">
+            <div className="border-b border-white/5 pb-3">
+              <span className="text-[10px] uppercase font-bold tracking-widest text-[#B8A9E8]/70 block">
                 Source Metadata
               </span>
-              <h3 className="font-sans text-base font-bold text-off-white mt-1">
+              <h3 className="font-sans text-base font-bold text-[#F8F5F2] mt-1">
                 Content Citation
               </h3>
             </div>
 
-            <div className="space-y-3">
-              <div className="grid grid-cols-12 gap-1 items-baseline">
-                <span className="col-span-4 text-xs font-sans text-muted-lavender/80">Source Type</span>
-                <span className="col-span-8 text-xs font-sans text-off-white font-semibold">
-                  {getReadableType(selectedResult)}
+            {/* Strict metadata layout matching user specifications */}
+            <div className="space-y-4 pt-1">
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-widest text-[#B8A9E8]/60 block">
+                  Source
                 </span>
-              </div>
-
-              <div className="grid grid-cols-12 gap-1 items-baseline">
-                <span className="col-span-4 text-xs font-sans text-muted-lavender/80">Citation</span>
-                <span className="col-span-8 text-xs font-sans text-off-white font-semibold">
+                <p className="text-sm font-sans text-[#F8F5F2] font-semibold mt-0.5">
                   {selectedResult.source}
-                </span>
+                </p>
               </div>
 
-              {selectedResult.date && (
-                <div className="grid grid-cols-12 gap-1 items-baseline">
-                  <span className="col-span-4 text-xs font-sans text-muted-lavender/80">Discovered</span>
-                  <span className="col-span-8 text-xs font-sans text-off-white font-semibold">
-                    {selectedResult.date}
-                  </span>
-                </div>
-              )}
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-widest text-[#B8A9E8]/60 block">
+                  Source type
+                </span>
+                <p className="text-sm font-sans text-[#F8F5F2] font-semibold mt-0.5">
+                  {getReadableType(selectedResult)}
+                </p>
+              </div>
 
-              <div className="pt-2 border-t border-outline-variant/5">
-                <span className="text-[10px] uppercase font-bold tracking-widest text-muted-lavender/50 block mb-1">
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-widest text-[#B8A9E8]/60 block">
                   Title
                 </span>
-                <p className="text-xs font-sans text-off-white font-bold leading-normal">
+                <p className="text-sm font-sans text-[#F8F5F2] font-semibold mt-0.5 leading-snug">
                   {selectedResult.title}
                 </p>
               </div>
 
-              {selectedResult.description && (
-                <div className="pt-1">
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-muted-lavender/50 block mb-1">
-                    Caption / Context
+              {(selectedResult.caption || selectedResult.description) && (
+                <div>
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-[#B8A9E8]/60 block">
+                    Caption
                   </span>
-                  <p className="text-xs font-sans text-muted-lavender leading-relaxed italic bg-deep-midnight/35 p-3 rounded-xl border border-coral/5">
-                    "{selectedResult.description}"
+                  <p className="text-xs font-sans text-[#B8A9E8] italic mt-0.5 bg-[#0E0E2C]/40 p-3 rounded-xl border border-[#FF3F7F]/5 leading-relaxed">
+                    "{selectedResult.caption || selectedResult.description}"
+                  </p>
+                </div>
+              )}
+
+              {selectedResult.date && (
+                <div>
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-[#B8A9E8]/60 block">
+                    Date
+                  </span>
+                  <p className="text-sm font-sans text-[#F8F5F2] font-semibold mt-0.5">
+                    {selectedResult.date}
                   </p>
                 </div>
               )}
             </div>
 
             {/* View Original External Link */}
-            <div className="pt-2 border-t border-outline-variant/10 flex items-center justify-between">
-              <span className="text-[10px] text-muted-lavender/60">Reference URL verified safe</span>
+            <div className="pt-3 border-t border-white/5 flex items-center justify-between">
+              <span className="text-[10px] text-[#B8A9E8]/60">External reference node</span>
               <a
                 href={selectedResult.url}
                 target="_blank"
                 rel="noreferrer"
-                className="group flex items-center gap-1 text-xs text-coral font-sans font-bold hover:text-off-white transition-colors"
+                className="group flex items-center gap-1 text-xs text-[#FF3F7F] font-sans font-bold hover:text-[#F8F5F2] transition-colors"
               >
                 <span>View original</span>
                 <span className="material-symbols-outlined text-[13px] group-hover:translate-x-0.5 transition-transform">
@@ -305,30 +309,30 @@ export const MatchDetailView: React.FC<MatchDetailViewProps> = ({
           {/* Why This Appears To Match Section */}
           <motion.div
             variants={{ hidden: { opacity: 0, x: 12 }, visible: { opacity: 1, x: 0 } }}
-            className="bg-midnight-indigo rounded-3xl p-6 border border-coral/10 shadow-[0_0_24px_rgba(0,0,0,0.1)] space-y-3"
+            className="bg-[#13113C] rounded-3xl p-6 border border-[#FF3F7F]/10 shadow-[0_0_24px_rgba(0,0,0,0.1)] space-y-3"
           >
-            <h4 className="font-sans text-sm font-bold text-off-white select-none">
+            <h4 className="font-sans text-sm font-bold text-[#F8F5F2] select-none">
               Why this appears to match
             </h4>
             
-            <ul className="space-y-2 text-xs text-muted-lavender">
+            <ul className="space-y-2 text-xs text-[#B8A9E8]">
               <li className="flex items-start gap-2">
-                <span className="text-coral select-none font-bold text-sm">✓</span>
-                <span>Face detected in both images</span>
+                <span className="text-[#FF3F7F] select-none font-bold text-sm leading-none">•</span>
+                <span>A face was detected in both images</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-coral select-none font-bold text-sm">✓</span>
-                <span>Strong facial feature similarity</span>
+                <span className="text-[#FF3F7F] select-none font-bold text-sm leading-none">•</span>
+                <span>Facial feature patterns show strong visual similarity</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-coral select-none font-bold text-sm">✓</span>
-                <span>High visual similarity</span>
+                <span className="text-[#FF3F7F] select-none font-bold text-sm leading-none">•</span>
+                <span>The overall visual similarity score is high</span>
               </li>
             </ul>
 
-            <div className="pt-2 mt-2 border-t border-outline-variant/5">
-              <p className="text-[10px] text-muted-lavender/70 leading-normal italic">
-                Note: This classification represents visual correspondence only. Visual correspondence models are statistical estimations and do not assert forensic certainty or establish real-world identity.
+            <div className="pt-2 mt-2 border-t border-white/5">
+              <p className="text-[10px] text-[#B8A9E8]/70 leading-normal italic">
+                This classification represents a visual comparison based on statistical similarity and is NOT proof of real-world identity.
               </p>
             </div>
           </motion.div>
@@ -336,13 +340,13 @@ export const MatchDetailView: React.FC<MatchDetailViewProps> = ({
           {/* CTA Action Panel */}
           <motion.div
             variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
-            className="p-1 rounded-3xl bg-gradient-to-r from-hot-pink/20 to-coral/20 border border-coral/15"
+            className="p-1 rounded-3xl bg-gradient-to-r from-[#FF3F7F]/20 to-[#FF3F7F]/20 border border-[#FF3F7F]/15"
           >
-            <div className="bg-deep-midnight rounded-[22px] p-5 text-center">
-              <h4 className="font-sans text-sm font-bold text-off-white">
+            <div className="bg-[#0E0E2C] rounded-[22px] p-5 text-center">
+              <h4 className="font-sans text-sm font-bold text-[#F8F5F2]">
                 Verify Image Origin &amp; Integrity
               </h4>
-              <p className="font-sans text-xs text-muted-lavender leading-relaxed mt-1 mb-4">
+              <p className="font-sans text-xs text-[#B8A9E8] leading-relaxed mt-1 mb-4">
                 Execute a cryptographic audit of the matched asset's on-chain registration certificate.
               </p>
 
@@ -351,17 +355,17 @@ export const MatchDetailView: React.FC<MatchDetailViewProps> = ({
                 onClick={onVerify}
                 className={`w-full py-3 rounded-xl font-sans text-xs font-bold transition-all flex items-center justify-center gap-2 border-0 cursor-pointer ${
                   isVerifying
-                    ? "bg-deep-violet text-muted-lavender/65 cursor-not-allowed"
-                    : "bg-gradient-to-r from-hot-pink to-coral text-off-white hover:brightness-110 hover:shadow-[0_0_16px_rgba(255,111,145,0.25)] active:scale-[0.99]"
+                    ? "bg-[#1c1a45] text-[#B8A9E8]/65 cursor-not-allowed"
+                    : "bg-gradient-to-r from-[#FF3F7F] to-[#FF3F7F] text-[#F8F5F2] hover:brightness-110 hover:shadow-[0_0_16px_rgba(255,111,145,0.25)] active:scale-[0.99]"
                 }`}
               >
                 {isVerifying ? (
                   <>
-                    <svg className="animate-spin h-4.5 w-4.5 text-coral" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-4 w-4 text-[#FF3F7F]" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span>Verifying integrity...</span>
+                    <span>Preparing provenance verification...</span>
                   </>
                 ) : (
                   <>

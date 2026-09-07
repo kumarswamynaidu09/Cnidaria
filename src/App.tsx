@@ -137,7 +137,7 @@ export default function App() {
             onReset={resetViewfinder}
             onRestart={startVisualSearchFlow}
           />
-        ) : ["result_selected", "verifying"].includes(state) ? (
+        ) : ["result_selected", "match_detail", "verifying"].includes(state) ? (
           <MatchDetailView
             selectedResult={finalSelectedResult}
             referenceUrl={activeAsset.thumbUrl}
