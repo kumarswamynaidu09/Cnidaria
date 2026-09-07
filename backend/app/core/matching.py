@@ -6,6 +6,7 @@ import httpx
 
 from app.schemas.search import SearchCandidate
 from app.core.face import decode_image_bytes, detect_and_encode_face
+from app.core.fingerprint import calculate_sha256
 
 logger = logging.getLogger(__name__)
 
@@ -84,13 +85,14 @@ class CandidateMatcher:
         self, candidate: SearchCandidate, target_embedding: np.ndarray
     ) -> SearchCandidate:
         """
-        Evaluates a single candidate: downloads image, runs face detection,
-        extracts ArcFace embedding, and computes cosine similarity against target_embedding.
+        Evaluates a single candidate: downloads image once, calculates SHA-256 fingerprint,
+        runs face detection, extracts ArcFace embedding, and computes cosine similarity.
         """
         async with self._semaphore:
             target_url = candidate.image_url or candidate.thumbnail_url
             if not target_url:
                 candidate.face_status = "image_unavailable"
+                candidate.sha256 = None
                 return candidate
 
             # Step 1: Download candidate image
@@ -102,7 +104,11 @@ class CandidateMatcher:
 
             if dl_status != "ok" or not image_bytes:
                 candidate.face_status = dl_status
+                candidate.sha256 = None
                 return candidate
+
+            # Calculate SHA-256 content fingerprint directly from exact downloaded bytes
+            candidate.sha256 = calculate_sha256(image_bytes)
 
             # Step 2: Decode image in memory
             img = decode_image_bytes(image_bytes)

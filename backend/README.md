@@ -1,17 +1,23 @@
 # Cnidaria Backend API
 
-Backend API for Cnidaria visual search and provenance verification built with FastAPI, InsightFace, and PicImageSearch.
+Backend API for Cnidaria visual search, content fingerprinting, and provenance verification built with FastAPI, InsightFace, and PicImageSearch.
 
 ## Features & Endpoints
 
 - **Health Check**: `GET /api/health`
 - **Face Scanning & Encoding**: `POST /api/scan` (InsightFace ArcFace 512d embeddings)
-- **Reverse Image Search & Match Ranking**: `POST /api/search`
+- **Reverse Image Search, Content Hashing & Ranking**: `POST /api/search`
   - Real reverse-image search via PicImageSearch (Google Lens, Yandex, Bing)
+  - Deterministic 64-character SHA-256 content fingerprinting directly from uncompressed downloaded bytes
   - Async candidate image fetching (max 10MB limit, 10s timeout, in-memory processing)
   - Real ArcFace candidate face detection & embedding extraction
   - Cosine similarity comparison against target face embedding ($\text{similarity} = \frac{\mathbf{u} \cdot \mathbf{v}}{\|\mathbf{u}\| \|\mathbf{v}\|}$)
   - Descending similarity ranking and visual match classification
+
+## Cryptographic Content Fingerprinting vs Biometrics
+
+- **SHA-256 Content Fingerprint**: Hashes the exact uncompressed raw image bytes downloaded from external candidate URLs using Python standard library `hashlib`. Guaranteed 1-byte tamper sensitivity. It represents **content byte integrity** and does **not** hash biometric vectors.
+- **ArcFace Biometric Vector**: 512-dimensional float32 feature embeddings extracted by neural networks. Processed strictly in server RAM and **never exposed in API responses or written to disk**.
 
 ## Visual Match Classification Tiers
 
