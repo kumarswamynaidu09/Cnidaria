@@ -72,7 +72,7 @@ export default function App() {
 
   const finalSelectedResult = selectedResult 
     ? (customImage && selectedResult.id === finalSearchResults[0]?.id)
-      ? { ...selectedResult, imageUrl: customImage, title: `Visual Attribution: ${customName}` }
+      ? { ...selectedResult, image: customImage, imageUrl: customImage, title: `Visual Attribution: ${customName}` }
       : selectedResult
     : null;
 
