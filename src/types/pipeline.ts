@@ -51,6 +51,8 @@ export interface SearchResult {
   sha256: string;
   block?: string;
   signer?: string;
+  face_status?: string;
+  match_classification?: string;
 }
 
 export interface BlockchainResponse {
@@ -60,6 +62,8 @@ export interface BlockchainResponse {
   verified: boolean;
   timestamp: string;
   contractAddress?: string;
+  blockNumber?: number;
+  message?: string;
 }
 
 export interface PipelineError {

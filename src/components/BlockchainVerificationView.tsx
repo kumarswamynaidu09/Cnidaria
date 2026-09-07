@@ -65,9 +65,9 @@ export const BlockchainVerificationView: React.FC<BlockchainVerificationViewProp
 
   const currentFingerprint = isTampered
     ? tamperedFingerprint
-    : mockBlockchainVerification.currentFingerprint;
+    : (selectedResult.sha256 || mockBlockchainVerification.currentFingerprint);
 
-  const registeredFingerprint = mockBlockchainVerification.registeredFingerprint;
+  const registeredFingerprint = selectedResult.sha256 || mockBlockchainVerification.registeredFingerprint;
 
   // Timeline step helper configuration
   const timelineSteps = [

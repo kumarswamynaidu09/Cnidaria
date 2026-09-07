@@ -150,7 +150,7 @@ export const usePipeline = () => {
   };
 
   // Run the visual analysis flow sequentially (Section 2 & 14 Timeline)
-  const startVisualSearchFlow = () => {
+  const startVisualSearchFlow = async () => {
     // Clear any previously running flows
     clearAllTimers();
     setError(null);
@@ -161,6 +161,15 @@ export const usePipeline = () => {
     setScanStatusText("Analyzing image");
     setScanSubText("Normalizing density structures and parsing pixel color matrices.");
     setScanBadgeText("Analyzing pixels");
+
+    // Initiate real scan concurrently if custom upload or preset is active
+    let realScanPromise: Promise<FaceDetails> | null = null;
+    const currentAsset = getActiveAsset();
+    if (customImage) {
+      realScanPromise = api.scanImage(customImage, "Custom");
+    } else {
+      realScanPromise = api.scanImage(activePreset, activePreset);
+    }
     
     scheduleTimeout(() => {
       // 2. Scanning State - Detecting Face
@@ -169,7 +178,25 @@ export const usePipeline = () => {
       setScanSubText("Locating visual region anchors and face landmark geometries.");
       setScanBadgeText("Detecting face");
       
-      scheduleTimeout(() => {
+      scheduleTimeout(async () => {
+        let scanResult: FaceDetails | null = null;
+        try {
+          scanResult = await realScanPromise;
+          setScanData(scanResult);
+        } catch (e) {
+          console.warn("Scan promise error:", e);
+        }
+
+        if (scanResult && !scanResult.faceDetected) {
+          setError({
+            type: "no_face",
+            message: "No facial landmarks detected in the image.",
+            suggestion: "Please upload an uncropped clear facial photo."
+          });
+          setState("error");
+          return;
+        }
+
         // 3. Face Detected State Transition
         setState("face_detected");
         setScanStep(3);
@@ -191,76 +218,89 @@ export const usePipeline = () => {
             setScanBadgeText("Encoding face");
             
             scheduleTimeout(() => {
-              // 5. Face Encoded State Transition (Pipeline automatically moves to web search after a brief hold)
+              // 5. Face Encoded State Transition
               setState("face_encoded");
               setScanStep(5);
               setScanStatusText("Face encoded");
-              setScanSubText("Simulated visual attribution signature generated successfully.");
+              setScanSubText("Visual attribution signature generated successfully.");
               setScanBadgeText("Face encoded ✓");
               
-              // Delay 1500ms, then automatically transition to Web Search state
               scheduleTimeout(() => {
                 runWebSearchSequence();
-              }, 1500);
-            }, 1200);
-          }, 1200);
-        }, 1500);
-      }, 1200);
+              }, 1200);
+            }, 1000);
+          }, 1000);
+        }, 1200);
+      }, 1000);
     }, 1000);
   };
 
-  // Web Search Sequence (Task 3)
-  const runWebSearchSequence = () => {
+  // Web Search Sequence (Task 3 & 4)
+  const runWebSearchSequence = async () => {
     setState("searching");
     setSearchStep(1);
     setSearchStatusText("Searching public sources");
 
-    // 1. Searching public sources -> 2. Finding visual matches (1500ms)
+    // Start real reverse image search call concurrently
+    const currentAsset = getActiveAsset();
+    const searchPromise = api.searchWeb(
+      currentAsset.vectorHash,
+      customImage ? "Custom" : activePreset,
+      customImage || null
+    );
+
     scheduleTimeout(() => {
       setSearchStep(2);
       setSearchStatusText("Finding visual matches");
 
-      // 2. Finding visual matches -> 3. Comparing visual features (1500ms)
       scheduleTimeout(() => {
         setSearchStep(3);
         setSearchStatusText("Comparing visual features");
 
-        // 3. Comparing visual features -> 4. Comparing faces (1500ms)
         scheduleTimeout(() => {
           setSearchStep(4);
           setSearchStatusText("Comparing faces");
 
-          // 4. Comparing faces -> 5. Ranking candidates (1500ms)
-          scheduleTimeout(() => {
+          scheduleTimeout(async () => {
             setSearchStep(5);
             setSearchStatusText("Ranking candidates");
 
-            // 5. Ranking candidates -> 6. Search complete (1500ms)
+            let realResults: SearchResult[] = [];
+            try {
+              realResults = await searchPromise;
+            } catch (err) {
+              console.warn("Real search failed in hook:", err);
+            }
+
             scheduleTimeout(() => {
               setSearchStep(6);
               setSearchStatusText("Search complete");
 
-              // Map deterministic search results to make sure both frontend formats work flawlessly
-              const deterministicResults = mockResults.map(item => ({
-                ...item,
-                image: item.imageUrl,
-                sourceType: item.type,
-                caption: item.description,
-                similarityScore: item.similarity
-              }));
-              setSearchResults(deterministicResults);
+              if (realResults && realResults.length > 0) {
+                setSearchResults(realResults);
+              } else {
+                // Fallback to mock results if array empty
+                const deterministicResults = mockResults.map(item => ({
+                  ...item,
+                  image: item.imageUrl,
+                  sourceType: item.type,
+                  caption: item.description,
+                  similarityScore: item.similarity
+                }));
+                setSearchResults(deterministicResults);
+              }
+
               setState("search_complete");
 
-              // 7. Transition to results state after a brief hold (1500ms)
               scheduleTimeout(() => {
                 setState("results");
-              }, 1500);
+              }, 1200);
 
-            }, 1500);
-          }, 1500);
-        }, 1500);
-      }, 1500);
-    }, 1500);
+            }, 1200);
+          }, 1200);
+        }, 1200);
+      }, 1200);
+    }, 1200);
   };
 
   // Inspect specific card/result details
@@ -281,27 +321,28 @@ export const usePipeline = () => {
     setAuditSteps([
       { id: 1, label: "Downloading content", sublabel: "Fetching raw byte payload from origin server", status: "running" },
       { id: 2, label: "Calculating fingerprint", sublabel: "Executing local SHA-256 byte digest", status: "pending" },
-      { id: 3, label: "Comparing with blockchain record", sublabel: "Querying Sepolia contract registry", status: "pending" }
+      { id: 3, label: "Comparing with blockchain record", sublabel: "Querying local Hardhat EVM registry", status: "pending" }
     ]);
 
     try {
-      // Step 1: Downloading (1200ms)
-      await new Promise(resolve => setTimeout(resolve, 1200));
+      // Step 1: Downloading (1000ms)
+      await new Promise(resolve => setTimeout(resolve, 1000));
       setAuditSteps(prev => prev.map(s => s.id === 1 ? { ...s, status: "completed" } : s.id === 2 ? { ...s, status: "running" } : s));
 
-      // Step 2: Hashing (1100ms)
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      // Step 2: Hashing (1000ms)
+      await new Promise(resolve => setTimeout(resolve, 1000));
       setAuditSteps(prev => prev.map(s => s.id === 2 ? { ...s, status: "completed" } : s.id === 3 ? { ...s, status: "running" } : s));
 
       // Fetch verified payload
       const response = await api.verifyBlockchain(
         selectedResult.id,
         customImage ? "Elena" : activePreset,
-        simulateTampering
+        simulateTampering,
+        selectedResult.sha256
       );
 
-      // Step 3: Ledger lookup (1100ms)
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      // Step 3: Ledger lookup (1000ms)
+      await new Promise(resolve => setTimeout(resolve, 1000));
       setAuditSteps(prev => prev.map(s => s.id === 3 ? { ...s, status: response.verified ? "completed" : "failed" } : s));
 
       setBlockchainResult(response);
@@ -312,7 +353,7 @@ export const usePipeline = () => {
       setError({
         type: "verification_failed",
         message: "Provenance smart-contract audit failed.",
-        suggestion: "The target node was unreachable or transaction index is corrupted."
+        suggestion: "The target EVM node was unreachable or transaction index is corrupted."
       });
       setState("error");
     }
