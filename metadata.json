@@ -1,0 +1,6 @@
+{
+  "name": "Cnidaria",
+  "description": "Visual Discovery Tool inspired by the deep marine atmosphere",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
