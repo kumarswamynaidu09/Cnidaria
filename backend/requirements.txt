@@ -12,3 +12,4 @@ python-multipart
 PicImageSearch
 pyquery
 httpx
+web3
