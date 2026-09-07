@@ -5,6 +5,8 @@ from pydantic import BaseModel
 
 from app.schemas.search import SearchResponse, SearchCandidate
 from app.core.search import search_provider
+from app.core.matching import candidate_matcher
+from app.core.storage import embedding_store
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +31,8 @@ async def search_web(
     image_url: Optional[str] = Form(None, description="Image URL reference")
 ):
     """
-    Executes real reverse-image web search using PicImageSearch against public engines (Google Lens, Yandex, Bing).
-    No mock data or fake candidates are returned.
+    Executes real reverse-image web search using PicImageSearch, downloads candidate images,
+    detects candidate faces, extracts ArcFace feature vectors, and ranks candidates by cosine similarity.
     """
     upload = file or image
     image_bytes: Optional[bytes] = None
@@ -97,9 +99,9 @@ async def search_web(
             detail=f"Uploaded image size ({round(len(image_bytes) / (1024*1024), 2)} MB) exceeds the 10 MB limit."
         )
 
-    # Execute reverse image search
+    # Step 1: Execute reverse image search
     try:
-        provider_name, candidates = await search_provider.search(image_bytes, filename=filename)
+        provider_name, raw_candidates = await search_provider.search(image_bytes, filename=filename)
     except Exception as err:
         logger.error(f"Unexpected search engine error: {err}")
         raise HTTPException(
@@ -107,21 +109,46 @@ async def search_web(
             detail="External reverse image search engines are currently unreachable or blocked."
         )
 
-    if provider_name == "picimagesearch:none":
+    if provider_name == "picimagesearch:none" or not raw_candidates:
         return SearchResponse(
             success=True,
             query_type="visual_search",
             provider="picimagesearch:none",
             candidate_count=0,
+            matched_count=0,
             candidates=[],
             error=None
         )
+
+    # Step 2: Retrieve target face embedding from Task 2 in-memory store
+    session_id = preset or "default"
+    target_embedding = embedding_store.get_embedding(session_id)
+
+    # If target face was not scanned in current session, scan the uploaded image bytes to get target embedding
+    if target_embedding is None and image_bytes:
+        from app.core.face import decode_image_bytes, detect_and_encode_face
+        img = decode_image_bytes(image_bytes)
+        if img is not None:
+            f_count, f_details, _ = detect_and_encode_face(img)
+            if f_count == 1:
+                target_embedding = f_details["embedding"]
+                embedding_store.store_embedding(session_id, target_embedding, {"bbox": f_details["bbox"]})
+
+    # Step 3: Run ArcFace candidate matching & ranking if target_embedding is available
+    if target_embedding is not None:
+        ranked_candidates = await candidate_matcher.match_and_rank_candidates(raw_candidates, target_embedding)
+        matched_count = len([c for c in ranked_candidates if c.face_status == "matched"])
+    else:
+        logger.info("No target face embedding found in session memory. Returning unranked search candidates.")
+        ranked_candidates = raw_candidates
+        matched_count = 0
 
     return SearchResponse(
         success=True,
         query_type="visual_search",
         provider=provider_name,
-        candidate_count=len(candidates),
-        candidates=candidates,
+        candidate_count=len(ranked_candidates),
+        matched_count=matched_count,
+        candidates=ranked_candidates,
         error=None
     )
