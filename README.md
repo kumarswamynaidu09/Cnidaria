@@ -4,6 +4,50 @@ Cnidaria is an end-to-end visual attribution and decentralized content provenanc
 
 ---
 
+## 5-MINUTE DEMO (HACKATHON JUDGE GUIDE)
+
+Follow these quick steps to execute a complete end-to-end live demo:
+
+### Step 1: Start Hardhat Local Blockchain
+```bash
+# Terminal 1 (Project Root)
+npx hardhat node
+```
+*Mines local blocks at `http://127.0.0.1:8545`.*
+
+### Step 2: Deploy Provenance Smart Contract
+```bash
+# Terminal 2 (Project Root)
+npx hardhat run scripts/deploy.js --network localhost
+```
+*Deploys `CnidariaProvenance.sol` to address `0x5FbDB2315678afecb367f032d93F642f64180aa3`.*
+
+### Step 3: Start FastAPI Backend
+```bash
+# Terminal 2 (Backend Directory)
+cd backend
+.venv\Scripts\activate   # (or source .venv/bin/activate on Linux/macOS)
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+*Runs backend pipeline API at `http://127.0.0.1:8000`.*
+
+### Step 4: Launch Vite Frontend
+```bash
+# Terminal 3 (Project Root)
+npm run dev
+```
+*Open browser at `http://localhost:3000`.*
+
+### Step 5: Test the Live Pipeline
+1. **Upload / Select Preset**: Click Elena preset or upload any custom photo.
+2. **Scan & Detect**: InsightFace detects bounding boxes & extracts 512d ArcFace embeddings (`POST /api/scan`).
+3. **Reverse Search & ArcFace Rank**: PicImageSearch queries reverse engines; ArcFace ranks candidate images by cosine similarity (`POST /api/search`).
+4. **Select Match & Inspect**: View candidate metadata & real SHA-256 hash calculated from candidate byte payload.
+5. **Register & Verify Provenance**: Click "Verify provenance". On-chain EVM transaction mines on Hardhat node (`POST /api/blockchain/register` & `/api/blockchain/verify`).
+6. **Tamper Proofing Demo**: Click "Simulate tampering" to modify 1 byte of content. Watch the UI instantly show **Verification Failed** because `original_sha256 != tampered_sha256`.
+
+---
+
 ## Important Semantic Distinction
 
 > **FACE SIMILARITY IS NOT IDENTITY PROOF.**
@@ -38,61 +82,6 @@ Real Registration & Provenance Reverification
 
 ---
 
-## Getting Started
-
-### 1. Hardhat Ethereum Blockchain
-
-```bash
-# In project root
-npx hardhat node
-
-# In another terminal, deploy the smart contract
-npx hardhat run scripts/deploy.js --network localhost
-```
-
-The smart contract will be deployed to local address: `0x5FbDB2315678afecb367f032d93F642f64180aa3`.
-
-### 2. FastAPI Backend
-
-```bash
-# Navigate to backend directory
-cd backend
-
-# Create virtual environment (Python 3.10+)
-python -m venv .venv
-
-# Activate virtual environment
-# Windows:
-.venv\Scripts\activate
-# Linux/macOS:
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Start FastAPI server
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
-```
-
-FastAPI OpenAPI docs available at: `http://127.0.0.1:8000/docs`
-
-### 3. Vite React Frontend
-
-```bash
-# Create .env in project root
-VITE_API_URL=http://127.0.0.1:8000
-
-# Install dependencies
-npm install
-
-# Start Vite dev server
-npm run dev
-```
-
-Frontend will run at: `http://localhost:3000`
-
----
-
 ## Environment Configuration
 
 | Variable | Mode | Description |
@@ -113,10 +102,9 @@ Frontend will run at: `http://localhost:3000`
 
 ---
 
-## Build Verification
-
-To run a production frontend build check:
+## Build & Test Verification
 
 ```bash
+# Run production build
 npm run build
 ```
