@@ -141,8 +141,10 @@ export default function App() {
         ) : state === "verifying" ? (
           <BlockchainVerificationView
             selectedResult={finalSelectedResult!}
+            blockchainResult={blockchainResult}
             onBackToMatch={() => setState("match_detail")}
             onBackToMatches={backToMatches}
+            onResetSearch={resetViewfinder}
           />
         ) : ["result_selected", "match_detail"].includes(state) ? (
           <MatchDetailView

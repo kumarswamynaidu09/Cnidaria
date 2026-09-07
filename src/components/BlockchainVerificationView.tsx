@@ -1,25 +1,32 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { SearchResult } from "../types/pipeline";
+import { SearchResult, BlockchainResponse } from "../types/pipeline";
 import { mockBlockchainVerification, tamperedFingerprint } from "../data/mockBlockchain";
+import { generateVerificationPDF } from "../services/pdfReport";
 
 interface BlockchainVerificationViewProps {
   selectedResult: SearchResult;
+  blockchainResult?: BlockchainResponse | null;
   onBackToMatch: () => void;
   onBackToMatches: () => void;
+  onResetSearch: () => void;
 }
 
 type StepState = "preparing" | "hashing" | "checking_blockchain" | "comparing" | "verified";
 
 export const BlockchainVerificationView: React.FC<BlockchainVerificationViewProps> = ({
   selectedResult,
+  blockchainResult,
   onBackToMatch,
-  onBackToMatches
+  onBackToMatches,
+  onResetSearch
 }) => {
   const [currentStep, setCurrentStep] = useState<StepState>("preparing");
   const [isTampered, setIsTampered] = useState<boolean>(false);
   const [copiedCurrent, setCopiedCurrent] = useState<boolean>(false);
   const [copiedRegistered, setCopiedRegistered] = useState<boolean>(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState<boolean>(false);
+  const [pdfDownloaded, setPdfDownloaded] = useState<boolean>(false);
 
   // Auto-progression sequence with precise, pleasant duration delays
   useEffect(() => {
@@ -90,6 +97,23 @@ export const BlockchainVerificationView: React.FC<BlockchainVerificationViewProp
     if (stepIndex < currentIndex) return "completed";
     if (stepIndex === currentIndex) return "active";
     return "pending";
+  };
+
+  const handleDownloadReport = async () => {
+    try {
+      setIsGeneratingPDF(true);
+      await generateVerificationPDF({
+        selectedResult,
+        blockchainResult: blockchainResult || null,
+        isTampered
+      });
+      setPdfDownloaded(true);
+      setTimeout(() => setPdfDownloaded(false), 3000);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   return (
@@ -519,6 +543,48 @@ export const BlockchainVerificationView: React.FC<BlockchainVerificationViewProp
                       <span>Restore original</span>
                     </button>
                   )}
+                </div>
+
+                {/* TASK 9: DOWNLOAD VERIFICATION REPORT & SEARCH ANOTHER IMAGE ACTION BAR */}
+                <div className="bg-midnight-indigo p-5 rounded-3xl border border-hot-pink/20 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[0_0_20px_rgba(255,63,127,0.1)]">
+                  <button
+                    disabled={isGeneratingPDF}
+                    onClick={handleDownloadReport}
+                    aria-label="Download verification report PDF"
+                    className={`w-full sm:w-auto flex-1 py-3 px-5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 border-0 cursor-pointer ${
+                      pdfDownloaded
+                        ? "bg-emerald-500 text-deep-midnight"
+                        : isGeneratingPDF
+                          ? "bg-deep-violet text-lavender/60 cursor-not-allowed"
+                          : "bg-gradient-to-r from-hot-pink to-coral text-off-white hover:brightness-110 hover:shadow-[0_0_15px_rgba(255,111,145,0.3)] active:scale-95"
+                    }`}
+                  >
+                    {isGeneratingPDF ? (
+                      <>
+                        <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                        <span>Generating report...</span>
+                      </>
+                    ) : pdfDownloaded ? (
+                      <>
+                        <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                        <span>Report downloaded ✓</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-[16px]">download</span>
+                        <span>Download verification report</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={onResetSearch}
+                    aria-label="Search another image and return to upload"
+                    className="w-full sm:w-auto py-3 px-5 rounded-xl bg-deep-violet hover:bg-deep-violet/80 border border-white/10 hover:border-white/25 text-lavender hover:text-off-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 shrink-0"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">add_photo_alternate</span>
+                    <span>Search another image</span>
+                  </button>
                 </div>
               </motion.div>
             )}
