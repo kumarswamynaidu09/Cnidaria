@@ -4,7 +4,7 @@ Cnidaria is an end-to-end visual attribution and decentralized content provenanc
 
 ---
 
-## 5-MINUTE DEMO (HACKATHON JUDGE GUIDE)
+## 5-MINUTE DEMO 
 
 Follow these quick steps to execute a complete end-to-end live demo:
 
