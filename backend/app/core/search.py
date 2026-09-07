@@ -116,14 +116,26 @@ class PicImageSearchProvider(VisualSearchProvider):
                 except Exception as cleanup_err:
                     logger.warning(f"Failed to remove temporary image file '{tmp_path}': {cleanup_err}")
 
-    def _deduplicate_and_limit(self, candidates: List[SearchCandidate], limit: int = 10) -> List[SearchCandidate]:
+    def _deduplicate_and_limit(self, candidates: List[SearchCandidate], limit: int = 30) -> List[SearchCandidate]:
         seen_keys = set()
         deduped = []
         for cand in candidates:
-            key = cand.url or cand.image_url
-            if not key or key in seen_keys:
+            # Level 1 URL normalization deduplication
+            url_key = cand.url or ""
+            img_key = cand.image_url or cand.thumbnail_url or ""
+            
+            # Extract main thumbnail ID if from Yandex or similar image CDN
+            thumb_id = ""
+            if "yandex.net" in img_key and "id=" in img_key:
+                try:
+                    thumb_id = img_key.split("id=")[1].split("&")[0]
+                except Exception:
+                    thumb_id = img_key
+
+            dedup_key = thumb_id or img_key or url_key
+            if not dedup_key or dedup_key in seen_keys:
                 continue
-            seen_keys.add(key)
+            seen_keys.add(dedup_key)
             deduped.append(cand)
             if len(deduped) >= limit:
                 break

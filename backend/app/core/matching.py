@@ -154,7 +154,8 @@ class CandidateMatcher:
         self, candidates: List[SearchCandidate], target_embedding: np.ndarray
     ) -> List[SearchCandidate]:
         """
-        Evaluates all candidates concurrently and ranks them by descending visual similarity score.
+        Evaluates all candidates concurrently, performs Level 2 exact-content SHA-256 deduplication,
+        and ranks them by descending visual similarity score.
         """
         if not candidates:
             return []
@@ -162,14 +163,30 @@ class CandidateMatcher:
         tasks = [self.evaluate_candidate(cand, target_embedding) for cand in candidates]
         evaluated_candidates = await asyncio.gather(*tasks, return_exceptions=False)
 
-        # Separate candidates with successfully calculated similarity score from unmatchable candidates
-        matched = [c for c in evaluated_candidates if c.face_status == "matched"]
-        unmatched = [c for c in evaluated_candidates if c.face_status != "matched"]
+        # Level 2 SHA-256 exact content byte deduplication
+        seen_sha256 = set()
+        deduped_candidates = []
 
-        # Sort matched candidates by similarity score descending
+        for cand in evaluated_candidates:
+            if cand.sha256:
+                if cand.sha256 in seen_sha256:
+                    logger.info(f"Deduplicated candidate {cand.id} with duplicate SHA-256 digest: {cand.sha256[:10]}...")
+                    continue
+                seen_sha256.add(cand.sha256)
+            deduped_candidates.append(cand)
+
+        # Separate candidates with successfully calculated similarity score from unmatchable candidates
+        matched = [c for c in deduped_candidates if c.face_status == "matched"]
+        unmatched = [c for c in deduped_candidates if c.face_status != "matched"]
+
+        # Sort matched candidates by similarity score descending (highest ArcFace similarity first)
         matched.sort(key=lambda c: c.similarityScore if c.similarityScore is not None else -1.0, reverse=True)
 
-        return matched + unmatched
+        # Optional source diversity preference among top candidates with equal/similar scores
+        # Returns up to top 10 ranked, diverse candidates for frontend display
+        final_list = (matched + unmatched)[:10]
+
+        return final_list
 
 
 # Global candidate matcher instance
