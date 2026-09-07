@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/cnidaria-banner.jpg" alt="Cnidaria Banner" width="600" />
+</p>
+
 # Cnidaria — Visual Attribution & Content Provenance Engine
 
 Cnidaria is an end-to-end visual attribution and decentralized content provenance framework. It combines real-time facial feature extraction, global reverse-image candidate searching, ArcFace cosine similarity ranking, SHA-256 cryptographic content fingerprinting, and EVM smart contract attestation on an Ethereum blockchain.
