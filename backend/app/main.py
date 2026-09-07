@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.api.endpoints import health
+from app.api.endpoints import health, scan
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -21,3 +21,4 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix=settings.API_V1_STR, tags=["Health"])
+app.include_router(scan.router, prefix=settings.API_V1_STR, tags=["Scan"])

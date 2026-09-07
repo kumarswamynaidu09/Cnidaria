@@ -3,3 +3,9 @@ uvicorn[standard]
 pydantic
 pydantic-settings
 python-dotenv
+insightface
+onnxruntime
+opencv-python
+numpy
+Pillow
+python-multipart
