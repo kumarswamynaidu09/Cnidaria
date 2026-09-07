@@ -4,6 +4,7 @@ import { ScanningView } from "./components/ScanningView";
 import { CrawlingView } from "./components/CrawlingView";
 import { ResultsView } from "./components/ResultsView";
 import { MatchDetailView } from "./components/MatchDetailView";
+import { BlockchainVerificationView } from "./components/BlockchainVerificationView";
 import { ProvenanceDrawer } from "./components/ProvenanceDrawer";
 import { AuditModal } from "./components/AuditModal";
 import { ErrorView } from "./components/ErrorView";
@@ -137,13 +138,19 @@ export default function App() {
             onReset={resetViewfinder}
             onRestart={startVisualSearchFlow}
           />
-        ) : ["result_selected", "match_detail", "verifying"].includes(state) ? (
+        ) : state === "verifying" ? (
+          <BlockchainVerificationView
+            selectedResult={finalSelectedResult!}
+            onBackToMatch={() => setState("match_detail")}
+            onBackToMatches={backToMatches}
+          />
+        ) : ["result_selected", "match_detail"].includes(state) ? (
           <MatchDetailView
             selectedResult={finalSelectedResult}
             referenceUrl={activeAsset.thumbUrl}
             onBack={backToMatches}
             onVerify={() => setState("verifying")}
-            isVerifying={state === "verifying"}
+            isVerifying={false}
           />
         ) : (
           /* Results Stage */
